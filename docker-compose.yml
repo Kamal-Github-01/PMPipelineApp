@@ -1,0 +1,80 @@
+version: '3'
+
+services:
+  zookeeper:
+    image: wurstmeister/zookeeper
+    ports:
+      - "2181:2181"
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+    
+  kafka:
+    image: wurstmeister/kafka
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_ADVERTISED_HOST_NAME: localhost
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_CREATE_TOPICS: "equipment-sensors:1:1"
+    depends_on:
+      - zookeeper
+  
+  data-simulator:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: python /app/data_simulator/run_simulator.py --equipment 3 --interval 1.0 --kafka --kafka-server kafka:9092
+    depends_on:
+      - kafka
+    volumes:
+      - ./data_simulator:/app/data_simulator
+  
+  data-consumer:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: python /app/data_ingestion/kafka_consumer.py --kafka-server kafka:9092 --output-dir /app/data
+    depends_on:
+      - kafka
+      - data-simulator
+    volumes:
+      - ./data_ingestion:/app/data_ingestion
+      - ./data:/app/data
+  
+  model-training:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: python /app/model_training/train_prophet_model.py --data-dir /app/data --model-dir /app/models
+    depends_on:
+      - data-consumer
+    volumes:
+      - ./model_training:/app/model_training
+      - ./data:/app/data
+      - ./models:/app/models
+  
+  inference-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: python /app/edge_inference/inference_service.py --model-dir /app/models --host 0.0.0.0
+    ports:
+      - "5000:5000"
+    depends_on:
+      - model-training
+    volumes:
+      - ./edge_inference:/app/edge_inference
+      - ./models:/app/models
+  
+  dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: streamlit run /app/dashboard/app.py -- --data-dir /app/data --inference-url http://inference-service:5000
+    ports:
+      - "8501:8501"
+    depends_on:
+      - inference-service
+    volumes:
+      - ./dashboard:/app/dashboard
+      - ./data:/app/data
