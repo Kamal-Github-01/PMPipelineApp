@@ -1,0 +1,31 @@
+{
+  "name": "ai-chat-system",
+  "version": "1.0.0",
+  "description": "AI-Powered Chat System with NLP, LLM integration, event-driven architecture, and role-based access",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js",
+    "client": "cd client && npm start",
+    "dev:full": "concurrently \"npm run dev\" \"npm run client\""
+  },
+  "keywords": ["ai", "chat", "nlp", "llm", "event-driven", "rbac"],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "socket.io": "^4.7.2",
+    "openai": "^4.10.0",
+    "dotenv": "^16.3.1",
+    "jsonwebtoken": "^9.0.2",
+    "bcryptjs": "^2.4.3",
+    "mongoose": "^7.5.2",
+    "cors": "^2.8.5",
+    "natural": "^6.5.0",
+    "redis": "^4.6.8"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1",
+    "concurrently": "^8.2.1"
+  }
+}
